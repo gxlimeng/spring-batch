@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+            xmlns:bean="http://www.springframework.org/schema/beans"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:p="http://www.springframework.org/schema/p"
+            xmlns:tx="http://www.springframework.org/schema/tx"
+            xmlns:aop="http://www.springframework.org/schema/aop"
+            xmlns:context="http://www.springframework.org/schema/context"
+            xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-4.1.xsd
+    http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+
+    <!-- ==========================内存模式=================================== -->
+    <!--定义作业仓库 存放在内存中,默认实现 MapJobRepositoryFactoryBean -->
+     <bean:bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean">
+
+     </bean:bean>
+
+     <!-- 定义了内存数据库事务管理器，用于spring-batch框架在对数据操作过程中提供事务能力 -->
+    <bean:bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager">
+
+    </bean:bean>
+
+    <!-- ==========================DB模式=================================== -->
+    <!--DB Job Repository 配置 -->
+    <!--<bean:import resource="classpath:spring-batch.xml"></bean:import>
+
+    <job-repository id="jobRepository" data-source="dataSource" transaction-manager="transactionManager"
+                          isolation-level-for-create="SERIALIZABLE" table-prefix="BATCH_" max-varchar-length="1000"/>
+
+
+    <bean:bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <bean:property name="dataSource" ref="dataSource"></bean:property>
+    </bean:bean>-->
+
+    <!-- 定义作业调度器，用来启动job -->
+    <bean:bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <bean:property name="jobRepository" ref="jobRepository"></bean:property>
+
+    </bean:bean>
+
+
+</bean:beans>

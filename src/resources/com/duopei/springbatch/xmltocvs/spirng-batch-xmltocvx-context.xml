@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+            xmlns:bean="http://www.springframework.org/schema/beans"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+    http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+
+    <bean:bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean"></bean:bean>
+
+    <bean:bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <bean:property name="jobRepository" ref="jobRepository"></bean:property>
+    </bean:bean>
+
+    <bean:bean id="flatFileItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step">
+        <bean:property name="resource" value="file:output/xmltocvs/examResult.txt"></bean:property>
+        <bean:property name="lineAggregator">
+            <bean:bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <bean:property name="delimiter" value="|"></bean:property>
+                <bean:property name="fieldExtractor">
+                    <bean:bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+                        <bean:property name="names" value="studentName, percentage, dob"></bean:property>
+                    </bean:bean>
+                </bean:property>
+            </bean:bean>
+        </bean:property>
+    </bean:bean>
+
+    <bean:bean id="xmlItemReader" class="org.springframework.batch.item.xml.StaxEventItemReader">
+        <bean:property name="resource" value="classpath:com/duopei/springbatch/xmltocvs/Example.xml"></bean:property>
+        <bean:property name="fragmentRootElementName" value="ExamResult"></bean:property>
+        <bean:property name="unmarshaller">
+            <bean:bean class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+                <bean:property name="classesToBeBound">
+                    <bean:list>
+                        <bean:value>com.duopei.springbatch.model.ExamResult</bean:value>
+                    </bean:list>
+                </bean:property>
+            </bean:bean>
+        </bean:property>
+    </bean:bean>
+
+    <bean:bean id="itemProcess" class="com.duopei.springbatch.xmltocvs.ExamResultItemProcessor"></bean:bean>
+
+    <bean:bean id="jobListener" class="com.duopei.springbatch.base.listener.SpringBatchJobListener"></bean:bean>
+
+    <bean:bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager"></bean:bean>
+
+    <job id="examXmltoCvsJob">
+        <step id="step1">
+            <tasklet transaction-manager="transactionManager">
+                <chunk reader="xmlItemReader" writer="flatFileItemWriter" processor="itemProcess" commit-interval="5"></chunk>
+            </tasklet>
+        </step>
+        <listeners>
+            <listener ref="jobListener"></listener>
+        </listeners>
+    </job>
+
+</bean:beans>

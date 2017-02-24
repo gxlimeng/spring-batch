@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+            xmlns:bean="http://www.springframework.org/schema/beans"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:p="http://www.springframework.org/schema/p"
+            xmlns:tx="http://www.springframework.org/schema/tx"
+            xmlns:aop="http://www.springframework.org/schema/aop"
+            xmlns:context="http://www.springframework.org/schema/context"
+            xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-4.1.xsd
+    http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+
+    <bean:import resource="classpath:ch02/job-context.xml" ></bean:import>
+
+    <!-- 定义名字为billJob的作业，该作业由名为billStep的step组成 -->
+    <job id="billJob" restartable="false">
+        <step id="billStemp">
+            <tasklet transaction-manager="transactionManager">
+                <chunk reader="csvItemReader" writer="csvItemWriter" processor="personProcessor"
+                    commit-interval="2">
+                    <!-- commit-interval="2" 表示提交间隔的大小，即每处理2条数据，进行一次写入操作。 -->
+                </chunk>
+            </tasklet>
+        </step>
+    </job>
+
+    <!-- 配置csvItemReader负责从文件中读取数据-->
+    <!-- FlatFileItemReader 两个属性
+        resource:指定读取的文件内容
+        lineMapper:通过lineMapper可以把文本中的一行转换为领域对象 person -->
+    <bean:bean id="csvItemReader" class="org.springframework.batch.item.file.FlatFileItemReader" scope="step">
+        <bean:property name="resource" value="classpath:sample-data.csv"></bean:property>
+        <bean:property name="lineMapper">
+            <bean:bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <bean:property name="lineTokenizer" ref="lineTokenizer"></bean:property>
+                <bean:property name="fieldSetMapper">
+                    <bean:bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+                        <bean:property name="prototypeBeanName" value="person"></bean:property>
+                    </bean:bean>
+                </bean:property>
+            </bean:bean>
+        </bean:property>
+    </bean:bean>
+
+    <!-- 定义lineTokenizer -->
+    <bean:bean id="lineTokenizer" class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+        <bean:property name="delimiter" value=","></bean:property>
+        <bean:property name="names">
+            <bean:list>
+                <bean:value>firstName</bean:value>
+                <bean:value>lastName</bean:value>
+            </bean:list>
+        </bean:property>
+    </bean:bean>
+
+    <bean:bean id="personProcessor" scope="step" class="ch02.PersonProcessor"></bean:bean>
+
+    <bean:bean id="person" class="ch02.Person"></bean:bean>
+
+<!--    <bean:bean id="csvItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step" >
+        <bean:property name="resource" value="file:target/ch02/output.csv"></bean:property>
+        <bean:property name="lineAggregator">
+            <bean:bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <bean:property name="delimiter" value=","></bean:property>
+                <bean:property name="fieldExtractor">
+                    <bean:bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor" >
+                        <bean:property name="names" value="firstName,lastName"></bean:property>
+                    </bean:bean>
+                </bean:property>
+            </bean:bean>
+        </bean:property>
+    </bean:bean>-->
+
+    <bean:bean id="csvItemWriter"
+          class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+        <bean:property name="itemSqlParameterSourceProvider" ref="itemSqlParameterSourceProvider"/>
+        <bean:property name="sql"
+                  value="INSERT INTO people (first_name, last_name) VALUES (:firstName, :lastName)"/>
+        <bean:property name="dataSource" ref="dataSource"/>
+    </bean:bean>
+
+    <bean:bean id="itemSqlParameterSourceProvider"
+          class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider"/>
+
+</bean:beans>
